@@ -1,0 +1,16 @@
+[package]
+name = "watch-files"
+version = "0.1.0"
+authors = ["Adam Shirey <adam@shirey.ch>"]
+edition = "2021"
+
+description = "Watches for the creation and completion of files for automatic processing"
+readme = "README.md"
+homepage = "https://github.com/aeshirey/watch-files"
+repository = "https://github.com/aeshirey/watch-files"
+license = "MIT OR Apache-2.0"
+keywords = ["monitor", "filesystem"]
+
+
+[dependencies]
+glob = "0.3.0"
