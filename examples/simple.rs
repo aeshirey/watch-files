@@ -10,6 +10,7 @@ pub fn main() {
         completed,
         not_processed,
         errored,
+        skipped,
     } = Watcher::new("simple_*.txt", |path| {
         std::fs::read_to_string(path).map(|s| s.len())
     })
@@ -25,6 +26,7 @@ pub fn main() {
 
     assert_eq!(not_processed.len(), 0, "No unprocessed files");
     assert_eq!(errored.len(), 0, "No errors");
+    assert!(skipped.is_empty(), "No skipped files");
 }
 
 fn create_files() {

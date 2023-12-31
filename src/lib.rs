@@ -1,6 +1,8 @@
 mod watcher;
 pub use watcher::Watcher;
 
+mod processor;
+
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -24,24 +26,42 @@ pub enum StopCondition {
 }
 
 #[derive(Debug)]
-enum FileStatus<T,E> {
-    ProcessingCompleted(T),
-    Processing(SystemTime),
-    Error(E),
+enum FileStatus<T, E> {
+    /// Unable to process because a modification time couldn't be read.
+    Skipped(std::io::Error),
+
+    /// File has been seen with modification time but has not yet reached maturation.
+    Seen(SystemTime),
+
+    /// Used only in multithreaded as a way to signal that a thread has claimed an input.
+    Processing,
+
+    /// Successfully completed.
+    Processed(T),
+
+    /// Failed to process.
+    Errored(E),
 }
 
 pub struct FileResults<T, E> {
-    /// Files successfully processed. The input path maps to the value returned
-    /// by the closure.
-    pub completed: HashMap<PathBuf, T>,
+    /// Files that were skipped because a modification time couldn't be read.
+    pub skipped: HashMap<PathBuf, std::io::Error>,
 
     /// A list of files that were not processed because the stop condition
     /// was hit before they could mature.
     pub not_processed: Vec<PathBuf>,
 
-    /// Files that were not processed due to an error.
-    /// 
-    /// The user-specified closure can return `E` or the watcher 
-    /// itself can return std::io::Error if metadata can't be fetched.
-    pub errored: std::collections::HashMap<PathBuf, E>,
+    /// Files successfully processed with the user-specified closure as `Ok(T)`
+    pub completed: HashMap<PathBuf, T>,
+
+    /// Files that failed the user-specified processing with `Err(E)`
+    pub errored: HashMap<PathBuf, E>,
+}
+
+/// Result flattening [is unstable](https://github.com/rust-lang/rust/issues/70142),
+/// so this function simplifies getting the system time from a file
+fn modification_time(path: &std::path::Path) -> Result<SystemTime, std::io::Error> {
+    let metadata = path.metadata()?;
+    let modified = metadata.modified()?;
+    Ok(modified)
 }

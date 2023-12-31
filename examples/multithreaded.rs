@@ -7,8 +7,9 @@ use watch_files::{FileResults, StopCondition, Watcher};
 pub fn main() {
     // Start creating files
     let thread1 = thread::spawn(|| create_file(1, 100));
-    thread::sleep(Duration::from_secs(1));
     let thread2 = thread::spawn(|| create_file(2, 100));
+    let thread3 = thread::spawn(|| create_file(3, 100));
+    let thread4 = thread::spawn(|| create_file(4, 100));
 
     // Watch for them to be created and process them as they become ready
     let FileResults {
@@ -22,13 +23,15 @@ pub fn main() {
     .maturation(Duration::from_secs(5))
     .delete_on_completion(true)
     .verbose(true)
-    .watch(StopCondition::NoNewFilesSince(Duration::from_secs(10)));
+    .watch_threaded(StopCondition::NoNewFilesSince(Duration::from_secs(10)), 4);
 
     thread1.join().ok();
     thread2.join().ok();
+    thread3.join().ok();
+    thread4.join().ok();
 
     println!("Found files: {completed:?}");
-    assert_eq!(200, completed.values().sum::<usize>());
+    assert_eq!(400, completed.values().sum::<usize>());
 
     assert_eq!(not_processed.len(), 0, "No unprocessed files");
     assert_eq!(errored.len(), 0, "No errors");
@@ -42,6 +45,5 @@ fn create_file(number: u8, length: usize) {
 
     for _ in 0..length {
         f.write(b".").ok();
-        thread::sleep(Duration::from_secs(1));
     }
 }
